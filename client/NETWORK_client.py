@@ -2,13 +2,14 @@ import socket
 import tqdm
 import os
 import argparse
+from sender_enc import *
 
 IP = socket.gethostbyname(socket.gethostname())  # to get the IPaddress
 PORT = 4456  # to get the port number
 ADDR = (IP, PORT)  # adress is tuple of ipaddress and port number
 SIZE = 4096
 SEPERATOR = "<SEPERATOR>"
-CLIENT_DATA_PATH = "/home/asadnaveed/PycharmProjects/Master_Arbeit/client"
+CLIENT_DATA_PATH = "/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/client"
 
 
 def main():
@@ -75,15 +76,32 @@ def main():
         d = f"{filename}{SEPERATOR}{filesize}".encode()
         client.send(d)
         progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
-
-        with open(filename, "rb") as f:
+        enc = encipher(filename)
+        with open(filename.split('.')[0] + ".bin","rb") as f:
             while True:
                 bytes_read = f.read(SIZE)
 
                 if not bytes_read:
 
                     break
+                client.sendall(bytes_read)
+                progress.update(len(bytes_read))
+        with open(filename.split('.')[0] + ".sig","rb") as f:
+            while True:
+                bytes_read = f.read(SIZE)
 
+                if not bytes_read:
+
+                    break
+                client.sendall(bytes_read)
+                progress.update(len(bytes_read))
+        with open(filename.split('.')[0] + ".key","rb") as f:
+            while True:
+                bytes_read = f.read(SIZE)
+
+                if not bytes_read:
+
+                    break
                 client.sendall(bytes_read)
                 progress.update(len(bytes_read))
         received = client.recv(SIZE).decode()
