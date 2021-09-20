@@ -9,8 +9,6 @@ from Crypto.PublicKey import RSA
 from Crypto.Random import random
 from Crypto.Signature import PKCS1_v1_5
 
-# senders public key
-# reciever private key
 
 def sigVerification(f_name,key_pub,f_dec):
     hash_file = SHA256.new()
@@ -24,7 +22,7 @@ def sigVerification(f_name,key_pub,f_dec):
     if keyVerifier.verify(hash_file,open(f_name.split('.')[0] + ".sig","rb").read()):
         print("the signature is authentic")
     else:
-        print("failed")
+        print("Signature authentication failed")
 def KeyReader(f_name,key_pri):
     with open(key_pri, "r") as myfile:
         private_Reciever_key = RSA.importKey(myfile.read())

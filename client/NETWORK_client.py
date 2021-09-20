@@ -2,7 +2,9 @@ import socket
 import tqdm
 import os
 import argparse
-from sender_enc import *
+import time
+from client_enc import *
+
 
 IP = socket.gethostbyname(socket.gethostname())  # to get the IPaddress
 PORT = 4456  # to get the port number
@@ -10,7 +12,7 @@ ADDR = (IP, PORT)  # adress is tuple of ipaddress and port number
 SIZE = 4096
 SEPERATOR = "<SEPERATOR>"
 CLIENT_DATA_PATH = "/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/client"
-
+start = time.process_time_ns()
 
 def main():
     print("********************************")
@@ -69,46 +71,64 @@ def main():
             break
 
     elif cmd == "UPLOAD":
+        print("write file name you want to transfer")
         data_1 = input("> ")
         data_1 = data_1.split(" ")
         filename = data_1[0]
         filesize = os.path.getsize(filename)
-        d = f"{filename}{SEPERATOR}{filesize}".encode()
+        print("write ON if you want to turn encryption ON else OFF" )
+        data_2 = input("> ")
+        cmd_2 = data_2
+        d = f"{filename}{SEPERATOR}{filesize}{SEPERATOR}{cmd_2}".encode()
         client.send(d)
         progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
-        enc = encipher(filename)
-        with open(filename.split('.')[0] + ".bin","rb") as f:
-            while True:
-                bytes_read = f.read(SIZE)
 
-                if not bytes_read:
 
-                    break
-                client.sendall(bytes_read)
-                progress.update(len(bytes_read))
-        with open(filename.split('.')[0] + ".sig","rb") as f:
-            while True:
-                bytes_read = f.read(SIZE)
 
-                if not bytes_read:
+        if cmd_2 == "OFF":
+            with open(filename.split('.')[0] + ".txt", "rb") as f:
+                while True:
+                    bytes_read = f.read(SIZE)
 
-                    break
-                client.sendall(bytes_read)
-                progress.update(len(bytes_read))
-        with open(filename.split('.')[0] + ".key","rb") as f:
-            while True:
-                bytes_read = f.read(SIZE)
+                    if not bytes_read:
+                        break
+                    client.sendall(bytes_read)
+                    progress.update(len(bytes_read))
 
-                if not bytes_read:
+        elif cmd_2 == "ON":
+            enc = encipher(filename)
+            with open(filename.split('.')[0] + ".bin","rb") as f:
+                while True:
+                    bytes_read = f.read(SIZE)
 
-                    break
-                client.sendall(bytes_read)
-                progress.update(len(bytes_read))
-        received = client.recv(SIZE).decode()
+                    if not bytes_read:
 
-        received = received.split(SEPERATOR)
+                        break
+                    client.sendall(bytes_read)
+                    progress.update(len(bytes_read))
+            with open(filename.split('.')[0] + ".sig","rb") as f:
+                while True:
+                    bytes_read = f.read(SIZE)
 
-        print(received[1])
+                    if not bytes_read:
+
+                        break
+                    client.sendall(bytes_read)
+                    progress.update(len(bytes_read))
+            with open(filename.split('.')[0] + ".key","rb") as f:
+                while True:
+                    bytes_read = f.read(SIZE)
+
+                    if not bytes_read:
+
+                        break
+                    client.sendall(bytes_read)
+                    progress.update(len(bytes_read))
+            received = client.recv(SIZE).decode()
+
+            received = received.split(SEPERATOR)
+
+            #print(received[1])
 
     else:
         print("********************************")
@@ -117,5 +137,7 @@ def main():
 
     print("Disconnected from the server.")
     client.close()
+    print("-----------------------------")
+    print(time.process_time_ns() - start)
 if __name__ == "__main__":
     main()

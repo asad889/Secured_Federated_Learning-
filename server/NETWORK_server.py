@@ -2,13 +2,16 @@ import os
 import socket
 import threading
 import tqdm
+from server_dec import *
+import time
 
 IP = socket.gethostbyname(socket.gethostname())
 PORT = 4456
 ADDR = (IP, PORT)
 SIZE = 4096
 SEPERATOR = "<SEPERATOR>"
-SERVER_DATA_PATH = "/home/asadnaveed/PycharmProjects/Master_Arbeit/server"
+SERVER_DATA_PATH = "/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/server"
+
 
 def handle_client(conn, addr):
     print(f"[NEW CONNECTION] {addr} connected.")
@@ -27,23 +30,59 @@ def handle_client(conn, addr):
                 #progress.update(len(bytes_read))
     elif cmd == "UPLOAD":
         received_1 = conn.recv(SIZE).decode()
-        filename, filesize = received_1.split(SEPERATOR)
-        filename = os.path.basename(filename)
-        filesize = int(filesize)
+        filename, filesize, cmd_2 = received_1.split(SEPERATOR)
+        if cmd_2 == "ON":
+            filename = os.path.basename(filename.split('.')[0] + ".bin")
+            filesize = int(filesize)
 
-        progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
-        filepath = os.path.join(SERVER_DATA_PATH, filename)
+            progress = tqdm.tqdm(range(filesize), f"Recieving {filename}", unit="B", unit_scale=True, unit_divisor=1024)
+            filepath = os.path.join(SERVER_DATA_PATH, filename)
 
-        with open(filepath, "wb") as f:
-            while True:
-                bytes_read = conn.recv(SIZE)
-                if not bytes_read:
+            with open(filename.split('.')[0] + ".bin","wb") as f:
+                while True:
+                    bytes_read = conn.recv(SIZE)
+                    if not bytes_read:
+                        break
+                    f.write(bytes_read)
+                    progress.update(len(bytes_read))
                     break
-                f.write(bytes_read)
-                progress.update(len(bytes_read))
-                break
-        status = f"OK{SEPERATOR}Server has already RECIEVED a file {filename} from client"
-        conn.send(status.encode())
+            with open(filename.split('.')[0] + ".sig", "wb") as f:
+                while True:
+                    bytes_read = conn.recv(SIZE)
+                    if not bytes_read:
+                        break
+                    f.write(bytes_read)
+                    progress.update(len(bytes_read))
+                    break
+            with open(filename.split('.')[0] + ".key", "wb") as f:
+                while True:
+                    bytes_read = conn.recv(SIZE)
+                    if not bytes_read:
+                        break
+                    f.write(bytes_read)
+                    progress.update(len(bytes_read))
+                    break
+            z = decifer(filename)
+            print(z)
+            status = f"OK{SEPERATOR}Server has already RECIEVED a file {filename} from client"
+            conn.send(status.encode())
+        else:
+            filename = os.path.basename(filename.split('.')[0] + ".txt")
+            filesize = int(filesize)
+
+            progress = tqdm.tqdm(range(filesize), f"Recieving {filename}", unit="B", unit_scale=True, unit_divisor=1024)
+            filepath = os.path.join(SERVER_DATA_PATH, filename)
+
+            with open(filename.split('.')[0] + ".txt", "wb") as f:
+                while True:
+                    bytes_read = conn.recv(SIZE)
+                    if not bytes_read:
+                        break
+                    f.write(bytes_read)
+                    progress.update(len(bytes_read))
+                    break
+
+
 
     elif cmd == "HELP":
         data = f"OK{SEPERATOR}"
@@ -76,7 +115,6 @@ def main():
         thread = threading.Thread(target=handle_client, args=(conn, addr))
         thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
-
 
 if __name__ == "__main__":
     main()
