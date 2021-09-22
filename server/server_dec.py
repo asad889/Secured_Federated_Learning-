@@ -9,20 +9,38 @@ from Crypto.PublicKey import RSA
 from Crypto.Random import random
 from Crypto.Signature import PKCS1_v1_5
 
-
-def sigVerification(f_name,key_pub,f_dec):
+def delete(signature,keyGenerator,Cipher,zip,tmp):
+    os.remove(signature)
+    os.remove(keyGenerator)
+    os.remove(Cipher)
+    os.remove(zip)
+    os.remove(tmp)
+def sigVerification(f_name,key_pub):
     hash_file = SHA256.new()
-    print(f_dec)
-    hash_file.update(open(f_dec, "rb").read())
+    
+    hash_file.update(open(f_name.split('.')[0] + ".tmp", "rb").read())
     with open(key_pub, "r") as myfile:
         public_key = RSA.importKey(myfile.read())
 
     keyVerifier = PKCS1_v1_5.new(public_key)
+    verify = keyVerifier.verify(hash_file,open(f_name.split('.')[0] + ".sig","rb").read())
 
     if keyVerifier.verify(hash_file,open(f_name.split('.')[0] + ".sig","rb").read()):
         print("the signature is authentic")
-    else:
+        return(verify)
+    else:    
         print("Signature authentication failed")
+        return(verify)
+def Unzip(f_name):
+
+    f = zipfile.ZipFile(f_name,"r")
+
+
+    f.extractall()
+
+
+
+
 def KeyReader(f_name,key_pri):
     with open(key_pri, "r") as myfile:
         private_Reciever_key = RSA.importKey(myfile.read())
@@ -33,22 +51,37 @@ def KeyReader(f_name,key_pri):
     return  iv,k
 
 def decifer(f_name):
-    print(f_name)
-    if f_name == "fedavg_1.bin":
+    if f_name == "fedavg_1.all":
         key_pri = "/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/server/keys_management/server.pem"
         key_pub = "/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/server/keys_management/pub_client1_key.pem"
     else:
         key_pri = "/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/server/keys_management/server.pem"
         key_pub = "/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/server/keys_management/pub_client2_key.pem"
-    iv,k = KeyReader(f_name,key_pri)
-    key_dec = AES.new(k,AES.MODE_CFB,iv)
+    Unzip(f_name)
 
-    bin = open (f_name.split('.')[0] + ".bin" ,"rb").read()
-    f= open("fedavg_1.txt","wb")
+    iv, k = KeyReader(f_name, key_pri)
+    key_dec = AES.new(k, AES.MODE_CFB, iv)
+
+    bin = open(f_name.split('.')[0] + ".bin", "rb").read()
+    f = open(f_name.split('.')[0] + ".tmp", "wb")
     f.write(key_dec.decrypt(bin))
     f.close()
-    f_dec = "fedavg_1.txt"
-    sigVerification(f_name,key_pub,f_dec)
+    verify = sigVerification(f_name, key_pub)
+    if verify == True:
+
+        tmp = open(f_name.split('.')[0] + ".tmp", "rb").read()
+
+        f = open(f_name.split('.')[0] + ".txt", "wb")
+        f.write(tmp)
+        delete(f_name.split('.')[0] + ".sig", f_name.split('.')[0] + ".key", f_name.split('.')[0] + ".bin",
+               f_name.split('.')[0] + ".all", f_name.split('.')[0] + ".tmp")
+        f.close()
+
+    elif verify == False:
+        print("execution failed")
+        delete(f_name.split('.')[0] + ".sig", f_name.split('.')[0] + ".key", f_name.split('.')[0] + ".bin",
+               f_name.split('.')[0] + ".all",f_name.split('.')[0] + ".tmp")
+
     
 	
 

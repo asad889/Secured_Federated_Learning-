@@ -56,22 +56,33 @@ def keyGenerator(f_name, iv,key_pub):
     # Returning generated key to encrypt file with
     return ret
 
-def encipher(f_name):
+def merger(signature,keyGenerator,Cipher,f_name):
+    f = zipfile.ZipFile(f_name.split('.')[0]+".all","w")
+    f.write(signature)
+    f.write(keyGenerator)
+    f.write(Cipher)
+    f.close()
+def delete(signature,keyGenerator,Cipher):
+    os.remove(signature)
+    os.remove(keyGenerator)
+    os.remove(Cipher)
+    
+
+   
+def encipher(f_name,key):
     # Opening file to encrypt in binary reading mode
 
     f = open(f_name, "rb")
     buffer = f.read()
     f.close()
-    print("enter client private key")
-    data = input("> ")
-    data = data.split(" ")
-    print(data[0])
-    data = os.path.basename(data[0])
+
+    print(key)
+    data = os.path.basename(key)
     KEY_DATA_PATH = "/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/client/keys_management"
     key_path = os.path.join(KEY_DATA_PATH, data)
     key_pri = key_path
     key_pub = "/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/client/keys_management/pub_server.pem"
-
+    
 
     sigGenerator(f_name,key_pri)
 
@@ -84,6 +95,8 @@ def encipher(f_name):
     f = open(f_name.split('.')[0] + ".bin", "wb")
     f.write(key_enc.encrypt(buffer))
     f.close()
+    merger(f_name.split('.')[0]+".sig",f_name.split('.')[0]+".key",f_name.split('.')[0]+".bin",f_name)
+    delete(f_name.split('.')[0]+".sig",f_name.split('.')[0]+".key",f_name.split('.')[0]+".bin")
     return(key_enc.encrypt(buffer))
 
 

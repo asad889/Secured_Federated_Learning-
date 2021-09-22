@@ -31,14 +31,15 @@ def handle_client(conn, addr):
     elif cmd == "UPLOAD":
         received_1 = conn.recv(SIZE).decode()
         filename, filesize, cmd_2 = received_1.split(SEPERATOR)
+        print(filename)
         if cmd_2 == "ON":
-            filename = os.path.basename(filename.split('.')[0] + ".bin")
+            filename = os.path.basename(filename.split('.')[0] + ".all")
             filesize = int(filesize)
 
             progress = tqdm.tqdm(range(filesize), f"Recieving {filename}", unit="B", unit_scale=True, unit_divisor=1024)
             filepath = os.path.join(SERVER_DATA_PATH, filename)
 
-            with open(filename.split('.')[0] + ".bin","wb") as f:
+            with open(filename.split('.')[0] + ".all","wb") as f:
                 while True:
                     bytes_read = conn.recv(SIZE)
                     if not bytes_read:
@@ -46,7 +47,7 @@ def handle_client(conn, addr):
                     f.write(bytes_read)
                     progress.update(len(bytes_read))
                     break
-            with open(filename.split('.')[0] + ".sig", "wb") as f:
+            '''with open(filename.split('.')[0] + ".sig", "wb") as f:
                 while True:
                     bytes_read = conn.recv(SIZE)
                     if not bytes_read:
@@ -61,9 +62,10 @@ def handle_client(conn, addr):
                         break
                     f.write(bytes_read)
                     progress.update(len(bytes_read))
-                    break
+                    break'''
+            
             z = decifer(filename)
-            print(z)
+
             status = f"OK{SEPERATOR}Server has already RECIEVED a file {filename} from client"
             conn.send(status.encode())
         else:

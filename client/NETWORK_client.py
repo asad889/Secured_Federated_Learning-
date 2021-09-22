@@ -96,8 +96,12 @@ def main():
                     progress.update(len(bytes_read))
 
         elif cmd_2 == "ON":
-            enc = encipher(filename)
-            with open(filename.split('.')[0] + ".bin","rb") as f:
+            print("enter client private key")
+            data = input("> ")
+            data = data.split(" ")
+            key = data[0]
+            enc = encipher(filename,key)
+            with open(filename.split('.')[0] + ".all","rb") as f:
                 while True:
                     bytes_read = f.read(SIZE)
 
@@ -106,7 +110,7 @@ def main():
                         break
                     client.sendall(bytes_read)
                     progress.update(len(bytes_read))
-            with open(filename.split('.')[0] + ".sig","rb") as f:
+            '''with open(filename.split('.')[0] + ".sig","rb") as f:
                 while True:
                     bytes_read = f.read(SIZE)
 
@@ -123,7 +127,7 @@ def main():
 
                         break
                     client.sendall(bytes_read)
-                    progress.update(len(bytes_read))
+                    progress.update(len(bytes_read))'''
             received = client.recv(SIZE).decode()
 
             received = received.split(SEPERATOR)
