@@ -1,5 +1,5 @@
 import socket
-import tqdm
+from tqdm import tqdm
 import os
 import argparse
 import time
@@ -50,7 +50,6 @@ def main():
         #filesize = os.path.getsize(filename)
 
         filename = os.path.join(CLIENT_DATA_PATH, filename)
-        #progress = tqdm.tqdm(range(filesize), f"Receiving {filename}", unit="B", unit_scale=True, unit_divisor=1024)
 
         with open(filename, "wb") as f:
             while True:
@@ -58,7 +57,6 @@ def main():
                 if not bytes_read:
                     break
                 f.write(bytes_read)
-                #progress.update(len(bytes_read))
                 break
 
 
@@ -81,7 +79,7 @@ def main():
         cmd_2 = data_2
         d = f"{filename}{SEPERATOR}{filesize}{SEPERATOR}{cmd_2}".encode()
         client.send(d)
-        progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
+
 
 
 
@@ -93,14 +91,22 @@ def main():
                     if not bytes_read:
                         break
                     client.sendall(bytes_read)
-                    progress.update(len(bytes_read))
 
         elif cmd_2 == "ON":
+
             print("enter client private key")
             data = input("> ")
             data = data.split(" ")
             key = data[0]
-            enc = encipher(filename,key)
+            key_pub = "/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/client/keys_management/pub_server.pem"
+            enc = Encryption(filename,key)
+            sign = enc.sigGenerator()
+            iv = Random.new().read(AES.block_size)
+            key = enc.keyGenerator(key_pub)
+            enc.encipher(key)
+            enc.merger()
+            enc.delete()
+
             with open(filename.split('.')[0] + ".all","rb") as f:
                 while True:
                     bytes_read = f.read(SIZE)
@@ -109,25 +115,10 @@ def main():
 
                         break
                     client.sendall(bytes_read)
-                    progress.update(len(bytes_read))
-            '''with open(filename.split('.')[0] + ".sig","rb") as f:
-                while True:
-                    bytes_read = f.read(SIZE)
 
-                    if not bytes_read:
 
-                        break
-                    client.sendall(bytes_read)
-                    progress.update(len(bytes_read))
-            with open(filename.split('.')[0] + ".key","rb") as f:
-                while True:
-                    bytes_read = f.read(SIZE)
 
-                    if not bytes_read:
 
-                        break
-                    client.sendall(bytes_read)
-                    progress.update(len(bytes_read))'''
             received = client.recv(SIZE).decode()
 
             received = received.split(SEPERATOR)
@@ -142,6 +133,6 @@ def main():
     print("Disconnected from the server.")
     client.close()
     print("-----------------------------")
-    print(time.process_time_ns() - start)
+    #print(time.process_time_ns() - start)
 if __name__ == "__main__":
     main()

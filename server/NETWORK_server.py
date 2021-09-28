@@ -36,7 +36,6 @@ def handle_client(conn, addr):
             filename = os.path.basename(filename.split('.')[0] + ".all")
             filesize = int(filesize)
 
-            progress = tqdm.tqdm(range(filesize), f"Recieving {filename}", unit="B", unit_scale=True, unit_divisor=1024)
             filepath = os.path.join(SERVER_DATA_PATH, filename)
 
             with open(filename.split('.')[0] + ".all","wb") as f:
@@ -45,27 +44,19 @@ def handle_client(conn, addr):
                     if not bytes_read:
                         break
                     f.write(bytes_read)
-                    progress.update(len(bytes_read))
                     break
-            '''with open(filename.split('.')[0] + ".sig", "wb") as f:
-                while True:
-                    bytes_read = conn.recv(SIZE)
-                    if not bytes_read:
-                        break
-                    f.write(bytes_read)
-                    progress.update(len(bytes_read))
-                    break
-            with open(filename.split('.')[0] + ".key", "wb") as f:
-                while True:
-                    bytes_read = conn.recv(SIZE)
-                    if not bytes_read:
-                        break
-                    f.write(bytes_read)
-                    progress.update(len(bytes_read))
-                    break'''
-            
-            z = decifer(filename)
-
+            dec = Decryption(filename)
+            dec.Unzip()
+            iv, k = dec.KeyReader()
+            key_dec = AES.new(k, AES.MODE_CFB, iv)
+            bin = open(filename.split('.')[0] + ".bin", "rb").read()
+            f = open(filename.split('.')[0] + ".tmp", "wb")
+            f.write(key_dec.decrypt(bin))
+            f.close()
+            key_pub = dec.Keymanagement()
+            verify = dec.sigVerification(key_pub)
+            dec.fileWriting(verify)
+            dec.delete()
             status = f"OK{SEPERATOR}Server has already RECIEVED a file {filename} from client"
             conn.send(status.encode())
         else:

@@ -10,94 +10,74 @@ from Crypto.Random import random
 from Crypto.Signature import PKCS1_v1_5
 KEYS_DATA_PATH = "/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/client/keys_management"
 
-def sigGenerator(f_name,key_pri):
-    # Opening and reading file to encrypt
-    f = open(f_name, "rb")
-    buffer = f.read()
-    #print(buffer)
-    f.close()
 
-    #enocding beacuse of error
-    buffer1 = buffer
+class Encryption:
+    def __init__(self,f_name,key):
+        self.f_name = f_name
+        self.key = key
 
-    # Creating hash of the file. Using SHA-256 (SHA-512 rose problems)
-    hash_file = SHA256.new(buffer1)
-    # Reading private key of sender to sign file with
-    private_key = False
-    with open (key_pri , "r") as myfile:
-        private_Sender_key = RSA.importKey(myfile.read())
-    keySigner = PKCS1_v1_5.new(private_Sender_key)
-    f = open(f_name.split('.')[0] + ".sig","wb")
-    f.write(keySigner.sign(hash_file))
-    f.close()
 
-def keyGenerator(f_name, iv,key_pub):
+    def sigGenerator(self):
+        f = open(self.f_name, "rb")
+        buffer = f.read()
+        f.close()
+        hash_file = SHA256.new(buffer)
+        private_key = False
+        data = os.path.basename(self.key)
+        KEYS_DATA_PATH ="/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/client/keys_management"
+        key_path = os.path.join(KEYS_DATA_PATH,data)
+        key_pri = key_path
+        with open(key_pri, "r") as myfile:
+            private_Sender_key = RSA.importKey(myfile.read())
+        keySigner = PKCS1_v1_5.new(private_Sender_key)
+        f = open(self.f_name.split('.')[0] + ".sig", "wb")
+        f.write(keySigner.sign(hash_file))
+        f.close()
 
-    key = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase +string.digits) for x in range(32))
-    print("bbbbbbbbbbbb")
-    print(key)
 
-    #iv = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for x in range(16))
-    key = key.encode()
-    hash_key = SHA256.new(key)
 
-    # Reading public key to encrypt AES key with
-    with open (key_pub , "r") as myfile:
-        Public_key_Reciever = RSA.importKey(myfile.read())
+    def keyGenerator(self,key_pub):
 
-    keyCipher = PKCS1_OAEP.new(Public_key_Reciever)
-    # Saving encrypted key to *.key file
-    f = open(f_name.split('.')[0] + ".key", "wb")
-    f.write(iv + keyCipher.encrypt(hash_key.digest()))
-    f.close()
-    ret = hash_key.digest()
+        key = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase +string.digits) for x in range(32))
+        key = key.encode()
+        hash_key = SHA256.new(key)
+        with open (key_pub , "r") as myfile:
+            Public_key_Reciever = RSA.importKey(myfile.read())
+        keyCipher = PKCS1_OAEP.new(Public_key_Reciever)
+        # Saving encrypted key to *.key file
+        f = open(self.f_name.split('.')[0] + ".key", "wb")
 
-    
-    # Returning generated key to encrypt file with
-    return ret
+        f.write(iv + keyCipher.encrypt(hash_key.digest()))
+        f.close()
+        ret = hash_key.digest()
+        return ret
 
-def merger(signature,keyGenerator,Cipher,f_name):
-    f = zipfile.ZipFile(f_name.split('.')[0]+".all","w")
-    f.write(signature)
-    f.write(keyGenerator)
-    f.write(Cipher)
-    f.close()
-def delete(signature,keyGenerator,Cipher):
-    os.remove(signature)
-    os.remove(keyGenerator)
-    os.remove(Cipher)
+
+    def merger(self):
+        f = zipfile.ZipFile(self.f_name.split('.')[0]+".all","w")
+        f.write(self.f_name.split('.')[0]+".sig")
+        f.write(self.f_name.split('.')[0]+".bin")
+        f.write(self.f_name.split('.')[0]+".key")
+        f.close()
+    def delete(self):
+        os.remove(self.f_name.split('.')[0]+".sig")
+        os.remove(self.f_name.split('.')[0]+".bin")
+        os.remove(self.f_name.split('.')[0]+".key")
     
 
    
-def encipher(f_name,key):
-    # Opening file to encrypt in binary reading mode
+    def encipher(self, key):
+        f = open(self.f_name, "rb")
+        buffer = f.read()
+        f.close()
 
-    f = open(f_name, "rb")
-    buffer = f.read()
-    f.close()
+        key_enc = AES.new(key, AES.MODE_CFB, iv)
+        f = open(self.f_name.split('.')[0] + ".bin", "wb")
+        f.write(key_enc.encrypt(buffer))
+        f.close()
 
-    print(key)
-    data = os.path.basename(key)
-    KEY_DATA_PATH = "/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/client/keys_management"
-    key_path = os.path.join(KEY_DATA_PATH, data)
-    key_pri = key_path
-    key_pub = "/home/asadnaveed/PycharmProjects/Secured_Federated_Learning-/client/keys_management/pub_server.pem"
-    
-
-    sigGenerator(f_name,key_pri)
-
-    iv = Random.new().read(AES.block_size)
-    print(len(iv))
-    key = keyGenerator(f_name,iv,key_pub)
-    print("aaaaaaaaaaaaa")
-    print(key)
-    key_enc = AES.new(key, AES.MODE_CFB, iv)
-    f = open(f_name.split('.')[0] + ".bin", "wb")
-    f.write(key_enc.encrypt(buffer))
-    f.close()
-    merger(f_name.split('.')[0]+".sig",f_name.split('.')[0]+".key",f_name.split('.')[0]+".bin",f_name)
-    delete(f_name.split('.')[0]+".sig",f_name.split('.')[0]+".key",f_name.split('.')[0]+".bin")
-    return(key_enc.encrypt(buffer))
+        return(key_enc.encrypt(buffer))
+iv = Random.new().read(AES.block_size)
 
 
 
